@@ -12,14 +12,6 @@
       v-model="dialog.excluir"
     />
     <q-card>
-      <!-- <div class="row wrap justify-between items-start content-start">
-        <div>
-          <q-btn icon="person_add_alt" color="primary" @click="dialog.cadastrar = true" />
-        </div>
-        <div class="q-pa-md">
-          <q-btn icon="person_add_alt" color="primary" @click="dialog.cadastrar = true" />
-        </div>
-      </div> -->
       <q-table
         :rows="usuarios.data"
         :columns="columns"
@@ -44,7 +36,7 @@
               <q-btn
                 class="q-mr-sm"
                 icon="person_add_alt"
-                label="CRIAR MOTORISTA"
+                label="CRIAR PASSGEIRO"
                 color="primary"
                 @click="dialog.cadastrar = true"
               />
@@ -60,8 +52,8 @@
                 v-model="dominio"
                 toggle-color="primary"
                 :options="[
-                  { label: 'Ativos', value: 'motoristas' },
-                  { label: 'Arquivados', value: 'motoristas-arquivados' },
+                  { label: 'Ativos', value: 'passageiros' },
+                  { label: 'Arquivados', value: 'passageiros-arquivados' },
                 ]"
               />
             </template>
@@ -76,7 +68,7 @@
           <q-tr :props="props">
             <q-td key="id">{{ props.row.id }}</q-td>
 
-            <q-td key="motorista">
+            <q-td key="passageiro">
               <q-item>
                 <q-item-section top avatar>
                   <q-avatar v-if="props.row.user.foto_thumbnail">
@@ -108,37 +100,6 @@
                 </template>
               </q-btn>
 
-              <q-btn
-                @click="
-                  () => {
-                    dialog.documentos = true
-                    usuario = props.row.user
-                  }
-                "
-                flat
-                dense
-                icon="list_alt"
-              >
-                <q-tooltip transition-show="flip-right" transition-hide="flip-left">
-                  Documentos
-                </q-tooltip>
-              </q-btn>
-              <q-btn
-                @click="
-                  () => {
-                    dialog.veiculos = true
-                    usuario = props.row.user
-                  }
-                "
-                dense
-                flat
-                icon="directions_car"
-              >
-                <q-tooltip transition-show="flip-right" transition-hide="flip-left">
-                  Veículos
-                </q-tooltip>
-              </q-btn>
-
               <q-btn @click="openExcluir(props.row)" dense flat icon="delete">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left">
                   arquivar
@@ -168,7 +129,7 @@ const usuarios = ref({
   data: [],
 })
 
-const dominio = ref('motoristas')
+const dominio = ref('passageiros')
 const usuarioSelecionado = ref(null)
 const openPress = ref(null)
 const loading = ref(false)
@@ -193,7 +154,7 @@ const pagination = ref({
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'motorista', label: 'Motorista', field: 'name', align: 'left' },
+  { name: 'passageiro', label: 'Passageiros', field: 'name', align: 'left' },
   { name: 'acoes', label: 'Ações', align: 'center' },
 ]
 
