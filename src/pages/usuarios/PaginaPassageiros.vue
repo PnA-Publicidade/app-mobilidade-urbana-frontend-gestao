@@ -1,7 +1,16 @@
 <template>
   <q-page class="q-pa-md">
-    <CriarUsuario @created="onRequest" v-model="dialog.cadastrar" />
+    <CriarMotorista @created="onRequest" v-model="dialog.cadastrar" />
+    <EditarUsuario @updated="onRequest" v-model="dialog.editar" :usuarioId="usuarioId" />
     <MostrarUsuario v-model="dialog.visualizar" />
+    <DocumentosUsuario :usuario="usuario" v-model="dialog.documentos" />
+    <MotoristaVeiculos :usuario="usuario" v-model="dialog.veiculos" />
+    <ExcluirUsuario
+      :acao="openPress"
+      :data="usuarioSelecionado"
+      @deleted="onRequest"
+      v-model="dialog.excluir"
+    />
     <q-card>
       <q-table
         :rows="usuarios.data"
@@ -12,10 +21,8 @@
         :loading="loading"
         @request="onRequest"
       >
-        <!-- TOPO -->
         <template #top>
           <q-space />
-
           <q-input
             class="full-width"
             filled
@@ -26,104 +33,80 @@
             @keyup.enter="buscarDados"
           >
             <template #before>
-              <q-btn icon="person_add_alt" color="primary" @click="dialog.cadastrar = true" />
+              <q-btn
+                class="q-mr-sm"
+                icon="person_add_alt"
+                label="CRIAR PASSGEIRO"
+                color="primary"
+                @click="dialog.cadastrar = true"
+              />
+
+              <q-btn-toggle
+                class="q-mr-sm"
+                @update:model-value="
+                  (val) => {
+                    dominio = val
+                    buscarDados()
+                  }
+                "
+                v-model="dominio"
+                toggle-color="primary"
+                :options="[
+                  { label: 'Ativos', value: 'passageiros' },
+                  { label: 'Arquivados', value: 'passageiros-arquivados' },
+                ]"
+              />
             </template>
 
-            <template #append>
+            <template v-if="search" #append>
               <q-icon name="close" class="cursor-pointer" @click="clearSearch" />
-            </template>
-
-            <template #after>
-              <q-btn round dense flat icon="search" @click="buscarDados" />
-
-              <q-btn flat round dense :icon="grid ? 'list' : 'grid_on'" @click="toggleGrid" />
             </template>
           </q-input>
         </template>
 
-        <!-- LISTA -->
         <template #body="props">
           <q-tr :props="props">
             <q-td key="id">{{ props.row.id }}</q-td>
 
-            <q-td key="nome">
+            <q-td key="passageiro">
               <q-item>
                 <q-item-section top avatar>
-                  <q-avatar>
-                    <img :src="props.row.foto" />
+                  <q-avatar v-if="props.row.user.foto_thumbnail">
+                    <img :src="props.row.user.foto" />
                   </q-avatar>
-                  <q-badge class="q-mt-sm" :label="props.row.type" color="grey" />
+                  <q-avatar v-else color="primary" text-color="white">
+                    {{ props.row.user.name.substr(0, 1) }}
+                  </q-avatar>
+                  <q-badge class="q-mt-sm" :color="badgeColor(props.row.user.status)">
+                    {{ props.row.user.status }}
+                  </q-badge>
                 </q-item-section>
 
                 <q-item-section>
-                  <q-item-label class="text-bold"> {{ props.row.name }}</q-item-label>
+                  <q-item-label class="text-bold"> {{ props.row.user.name }}</q-item-label>
                   <q-item-label class="estilo-coluna">
-                    {{ props.row.email }}
-                    <div>CPF: {{ props.row.cpf }}</div>
-                    <div>TEL: {{ props.row.telefone }}</div>
+                    {{ props.row.user.email }}
+                    <div>CPF: {{ props.row.user.cpf }}</div>
+                    <div>TEL: {{ props.row.user.telefone }}</div>
                   </q-item-label>
                 </q-item-section>
               </q-item>
             </q-td>
 
-            <q-td key="status">
-              <q-badge :color="badgeColor(props.row.status)">
-                {{ props.row.status }}
-              </q-badge>
-            </q-td>
-
             <q-td key="acoes" align="center">
-              <!-- <q-btn flat dense icon="visibility" @click="openEditar(props.row.id)" />
-              <q-btn flat dense icon="delete" @click="arquivarUsuario(props.row.id)" /> -->
-              <q-btn @click="dialog.visualizar = true" dense flat icon="visibility">
+              <q-btn @click="openEditar(props.row.user.id)" dense flat icon="visibility">
                 <template v-slot:loading>
                   <q-spinner-hourglass />
                 </template>
               </q-btn>
 
-              <q-btn flat dense icon="list_alt">
-                <q-tooltip transition-show="flip-right" transition-hide="flip-left">
-                  Documentos
-                </q-tooltip>
-              </q-btn>
-              <q-btn dense flat icon="directions_car">
-                <q-tooltip transition-show="flip-right" transition-hide="flip-left">
-                  Veículos
-                </q-tooltip>
-              </q-btn>
-
-              <q-btn dense flat icon="delete">
+              <q-btn @click="openExcluir(props.row)" dense flat icon="delete">
                 <q-tooltip transition-show="flip-right" transition-hide="flip-left">
                   arquivar
                 </q-tooltip>
               </q-btn>
             </q-td>
           </q-tr>
-        </template>
-
-        <!-- GRID -->
-        <template #item="props">
-          <div class="q-pa-xs col-xs-12 col-sm-6 col-md-3">
-            <q-card>
-              <q-item clickable @click="openEditar(props.row.id)">
-                <q-item-section avatar>
-                  <q-avatar size="70px">
-                    <img v-if="props.row.foto" :src="props.row.foto" />
-                    <span v-else>
-                      {{ props.row.name?.charAt(0) }}
-                    </span>
-                  </q-avatar>
-                </q-item-section>
-
-                <q-item-section>
-                  <q-item-label>{{ props.row.name }}</q-item-label>
-                  <q-item-label caption>
-                    {{ props.row.email }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-card>
-          </div>
         </template>
       </q-table>
     </q-card>
@@ -133,8 +116,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { api } from 'boot/axios'
-import CriarUsuario from 'src/components/usuarios/CriarUsuario.vue'
+import CriarMotorista from 'src/components/motorista/CriarMotorista.vue'
 import MostrarUsuario from 'src/components/usuarios/MostrarUsuario.vue'
+import EditarUsuario from 'src/components/usuarios/EditarUsuario.vue'
+import ExcluirUsuario from 'src/components/usuarios/ExcluirUsuario.vue'
+import DocumentosUsuario from 'src/components/usuarios/DocumentosUsuario.vue'
+import MotoristaVeiculos from 'src/components/motorista/MotoristaVeiculos.vue'
 
 // STATES
 const usuarios = ref({
@@ -142,42 +129,44 @@ const usuarios = ref({
   data: [],
 })
 
+const dominio = ref('passageiros')
+const usuarioSelecionado = ref(null)
+const openPress = ref(null)
 const loading = ref(false)
 const search = ref('')
 const grid = ref(false)
 
 const dialog = reactive({
-  editarUsuario: false,
+  editar: false,
   cadastrar: false,
   visualizar: false,
+  excluir: false,
+  veiculos: false,
 })
 
 const usuarioId = ref(null)
+const usuario = ref({})
 
 const pagination = ref({
   page: 1,
   rowsPerPage: 5,
-  // rowsNumber: 5,
 })
 
-// COLUMNS
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'nome', label: 'Nome', field: 'name', align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'left' },
+  { name: 'passageiro', label: 'Passageiros', field: 'name', align: 'left' },
   { name: 'acoes', label: 'Ações', align: 'center' },
 ]
 
-// METHODS
 const badgeColor = (status) => {
   if (status === 'aprovado') return 'green'
   if (status === 'suspenso') return 'orange'
   if (status === 'banido') return 'red'
 }
 
-const toggleGrid = () => {
-  grid.value = !grid.value
-}
+// const toggleGrid = () => {
+//   grid.value = !grid.value
+// }
 
 const clearSearch = () => {
   search.value = ''
@@ -187,14 +176,20 @@ const clearSearch = () => {
 
 const openEditar = (id) => {
   usuarioId.value = id
-  dialog.editarUsuario = true
+  dialog.editar = true
+}
+
+const openExcluir = (usuario) => {
+  usuarioSelecionado.value = [usuario]
+  openPress.value = 'arquivar'
+  dialog.excluir = true
 }
 
 const buscarDados = async (props) => {
   loading.value = true
   const { page, rowsPerPage } = props ? props.pagination : pagination
   try {
-    const response = await api.get('/users', {
+    const response = await api.get(`${dominio.value}`, {
       params: {
         search: search.value || '',
         page: page,
