@@ -67,168 +67,135 @@
                 </q-item>
               </q-td>
               <q-td :props="props" key="acoes">
-                <q-btn
-                  v-if="visibilidadeBotoes(props.row.status, 'acao')"
-                  :disable="carregandoDocumentos || erroCarregamento"
-                  @click="
-                    () => {
-                      documentoSelecionado = props.row
-                      dialog.reprovarDocumento = true
-                    }
-                  "
-                  flat
-                  text-color="red"
-                  round
-                  icon="close"
-                >
-                  <q-tooltip transition-show="flip-right" transition-hide="flip-left">
-                    reprovar documento
-                  </q-tooltip>
-                </q-btn>
-                <q-btn
-                  v-if="visibilidadeBotoes(props.row.status, 'acao')"
-                  :disable="carregandoDocumentos || erroCarregamento"
-                  @click="
-                    () => {
-                      documentoSelecionado = props.row
-                      dialog.confirmacao = true
-                    }
-                  "
-                  flat
-                  text-color="green"
-                  round
-                  icon="done"
-                >
-                  <q-tooltip transition-show="flip-right" transition-hide="flip-left">
-                    aprovar documento
-                  </q-tooltip>
-                </q-btn>
-                <q-btn
-                  v-if="visibilidadeBotoes(props.row.status, 'menu')"
-                  :disable="carregandoDocumentos || erroCarregamento"
-                  @click.stop.prevent
-                  title="Menu"
-                  icon="linear_scale"
-                  dense
-                  flat
-                  round
-                >
-                  <q-menu>
-                    <q-list style="min-width: 100px">
-                      <q-item clickable v-close-popup>
-                        <q-item-section>Reprovar documento</q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section>Excluir documento</q-item-section>
-                      </q-item>
-
-                      <q-item clickable v-close-popup>
-                        <q-item-section>Baixar documento</q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn>
-
-                <q-icon
-                  v-if="
-                    !carregandoDocumentos &&
-                    !erroCarregamento &&
-                    visibilidadeBotoes(props.row.status, 'upload')
-                  "
-                  @click="
-                    () => {
-                      documentoSelecionado = props.row
-                      dialog.envairArquivo = true
-                    }
-                  "
-                  class="q-ml-lg cursor-pointer"
-                  color="grey"
-                  size="sm"
-                  name="upload"
-                >
-                  <q-tooltip
-                    v-if="!props.row.id"
-                    transition-show="flip-right"
-                    transition-hide="flip-left"
+                <div class="row items-center justify-end no-wrap">
+                  <q-btn
+                    v-if="visibilidadeBotoes(props.row.status, 'reprovar')"
+                    :disable="carregandoDocumentos || erroCarregamento"
+                    @click="
+                      () => {
+                        documentoSelecionado = props.row
+                        dialog.confirmacaoReprovarDocumento = true
+                      }
+                    "
+                    flat
+                    text-color="red"
+                    round
+                    dense
+                    icon="close"
+                    aria-label="Reprovar documento"
                   >
-                    enviar arquivo
-                  </q-tooltip>
-                </q-icon>
-
-                <!-- <q-icon
-                  v-if="visibilidadeBotoes(props.row.status, 'download')"
-                  @click="
-                    () => {
-                      documentoSelecionado.value = props.row
-                      dialog.envairArquivo = true
-                    }
-                  "
-                  class="q-ml-lg cursor-pointer"
-                  color="grey"
-                  size="sm"
-                  name="download"
-                >
-                  <q-tooltip
-                    v-if="!props.row.id"
-                    transition-show="flip-right"
-                    transition-hide="flip-left"
+                    <q-tooltip transition-show="flip-right" transition-hide="flip-left">
+                      reprovar documento
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="visibilidadeBotoes(props.row.status, 'aprovar')"
+                    :disable="carregandoDocumentos || erroCarregamento"
+                    @click="
+                      () => {
+                        documentoSelecionado = props.row
+                        dialog.confirmacao = true
+                      }
+                    "
+                    flat
+                    text-color="green"
+                    round
+                    dense
+                    icon="done"
+                    aria-label="Aprovar documento"
                   >
-                    baixar arquivo
-                  </q-tooltip>
-                </q-icon> -->
+                    <q-tooltip transition-show="flip-right" transition-hide="flip-left">
+                      aprovar documento
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="props.row.url"
+                    :disable="carregandoDocumentos || erroCarregamento"
+                    :loading="baixandoDocumento === props.row.id"
+                    @click="!props.row.verso?.url && baixarDocumento(props.row)"
+                    aria-label="Baixar documento"
+                    icon="download"
+                    dense
+                    flat
+                    round
+                  >
+                    <q-tooltip>Baixar documento</q-tooltip>
+                    <q-menu v-if="props.row.verso?.url">
+                      <q-list style="min-width: 100px">
+                        <q-item
+                          v-for="anexo in anexosDocumento(props.row)"
+                          :key="anexo.lado"
+                          clickable
+                          v-close-popup
+                          @click="baixarDocumento(props.row, anexo.lado)"
+                        >
+                          <q-item-section>Baixar {{ anexo.label }}</q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn>
+
+                  <q-btn
+                    v-if="
+                      !carregandoDocumentos &&
+                      !erroCarregamento &&
+                      visibilidadeBotoes(props.row.status, 'upload')
+                    "
+                    @click="abrirEnvio(props.row)"
+                    :color="props.row.id ? 'black' : 'grey'"
+                    flat
+                    round
+                    dense
+                    :aria-label="
+                      props.row.status === 'em_analise'
+                        ? 'Expandir documento'
+                        : props.row.status === 'reprovado'
+                          ? 'Reenviar documento'
+                          : 'Enviar documento'
+                    "
+                  >
+                    <q-icon
+                      :name="props.row.id ? iconeExpandir : 'upload'"
+                      class="cursor-pointer"
+                    />
+                    <q-tooltip transition-show="flip-right" transition-hide="flip-left">
+                      {{
+                        props.row.status === 'em_analise'
+                          ? 'Expandir documento'
+                          : props.row.status === 'reprovado'
+                            ? 'Reenviar documento'
+                            : 'Enviar arquivo'
+                      }}
+                    </q-tooltip>
+                  </q-btn>
+                </div>
               </q-td>
             </q-tr>
           </template>
         </q-table>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="dialog.reprovarDocumento">
-      <q-card style="width: 700px; max-width: 80vw">
-        <q-card-section>
-          <CardPerfilDocumento :documento="documentoSelecionado" />
-          <q-form @submit.prevent="onSubmit">
-            <q-input
-              label="Observação"
-              dense
-              outlined
-              autogrow
-              class="full-width q-px-md q-mt-md q-mb-md"
-              v-model="documentoSelecionado.observacao"
-              type="textarea"
-              bottom-slots
-              counter
-              maxlength="2000"
-              :rules="[(val) => val.length >= 3 || 'Campo obrigatório']"
-            >
-              <template v-slot:hint> Caracteres </template>
-            </q-input>
-            <div class="q-mt-md" align="center">
-              <q-btn type="submit" icon="close" color="red" label="REPROVAR DOCUMENTO" />
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
     <JanelaConfirmacao v-model="dialog.confirmacao" @confirm="mudarStatusDocumento('aprovado')">
-      Deseja realmente aprovar o ducmento?
+      Deseja realmente aprovar o documento?
     </JanelaConfirmacao>
-    <JanelaConfirmacao
+    <ReprovarDocumento
       v-model="dialog.confirmacaoReprovarDocumento"
-      @confirm="mudarStatusDocumento('reprovado')"
-    >
-      Deseja realmente reprovar o ducmento?
-    </JanelaConfirmacao>
+      :documento="documentoSelecionado"
+      @updated="onDocumentoUpdated"
+    />
   </section>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useQuasar } from 'quasar'
+import { exportFile, useQuasar } from 'quasar'
 import { api } from 'boot/axios'
 import CardPerfilUsuario from 'src/components/usuarios/CardPerfilUsuario.vue'
 import JanelaConfirmacao from 'src/components/JanelaConfirmacao.vue'
 import SubirArquivo from 'src/components/motorista/SubirArquivo.vue'
-import CardPerfilDocumento from 'src/components/motorista/CardPerfilDocumento.vue'
+import ReprovarDocumento from 'src/components/motorista/ReprovarDocumento.vue'
+
+const iconeExpandir = 'M14 4h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6z'
 
 // PROPS
 const props = defineProps({
@@ -250,20 +217,18 @@ const model = computed({
 })
 
 // STATE
-const documentoSelecionado = ref({
-  observacao: '',
-})
+const documentoSelecionado = ref({})
 let documentosVersion = 0
 const dialog = ref({
   confirmacao: false,
   envairArquivo: false,
-  reprovarDocumento: false,
   confirmacaoReprovarDocumento: false,
 })
 
 const data = ref([])
 const carregandoDocumentos = ref(false)
 const erroCarregamento = ref(false)
+const baixandoDocumento = ref(null)
 
 const columns = [
   {
@@ -277,13 +242,14 @@ const columns = [
   },
 ]
 
-function onSubmit() {
-  dialog.value.confirmacaoReprovarDocumento = true
-}
-
 function beforeShow() {
   data.value = []
   getMotoristaDocumentos()
+}
+
+function abrirEnvio(documento) {
+  documentoSelecionado.value = documento
+  dialog.value.envairArquivo = true
 }
 
 function onBeforeHide() {
@@ -295,20 +261,48 @@ function onBeforeHide() {
 
 function visibilidadeBotoes(status, tipo) {
   switch (tipo) {
-    case 'acao':
-      return status === 'em_analise'
-
-    case 'menu':
-      return status === 'aprovado' || status === 'reprovado' || status === 'em_analise'
-
-    case 'download':
-      return status === 'aprovado' || status === 'reprovado' || status === 'em_analise'
+    case 'reprovar':
+      return status === 'em_analise' || status === 'aprovado'
+    case 'aprovar':
+      return status === 'em_analise' || status === 'reprovado'
 
     case 'upload':
-      return !status
+      return !status || status === 'reprovado' || status === 'em_analise'
 
     default:
       return false
+  }
+}
+
+function anexosDocumento(documento) {
+  const anexos = [{ ...documento, lado: 'frente', label: 'frente' }]
+  if (documento.verso?.url) anexos.push({ ...documento.verso, lado: 'verso', label: 'verso' })
+  return anexos
+}
+
+async function baixarDocumento(documento, lado = 'frente') {
+  if (baixandoDocumento.value !== null) return
+  const anexo = lado === 'verso' ? documento.verso : documento
+  if (!anexo?.url || !documento.id) return
+  baixandoDocumento.value = documento.id
+  try {
+    const response = await api.get(`/motorista-documentos/${documento.id}/download`, {
+      params: { lado },
+      responseType: 'blob',
+      timeout: 30000,
+    })
+    const nome = anexo.name || `${documento.tipo_documento}-${lado}.${anexo.type || 'pdf'}`
+    const resultado = exportFile(nome, response.data, {
+      mimeType: anexo.mime_type || response.data.type,
+    })
+    if (resultado !== true) throw resultado
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: 'Não foi possível baixar o documento. Tente novamente.',
+    })
+  } finally {
+    baixandoDocumento.value = null
   }
 }
 
@@ -322,10 +316,8 @@ const badgeColor = (status) => {
 async function mudarStatusDocumento(status) {
   try {
     const response = await api.put(`mudar-status-documento/${documentoSelecionado.value.id}`, {
-      observacao: documentoSelecionado.value.observacao,
       status: status,
     })
-    dialog.value.reprovarDocumento = false
     documentoSelecionado.value = {}
     onDocumentoUpdated()
     $q.notify({ type: 'positive', position: 'top-right', message: response.data.message })
